@@ -1,6 +1,10 @@
 """Home Generative Agent Initialization."""
-
 from __future__ import annotations
+
+# vendor override for stdlib imghdr
+import sys
+from . import imghdr as _imghdr
+sys.modules['imghdr'] = _imghdr
 
 import asyncio
 import logging

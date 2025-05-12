@@ -1,6 +1,7 @@
 """Constants for Home Generative Agent."""
 
 from typing import Literal
+import os
 
 DOMAIN = "home_generative_agent"
 
@@ -175,4 +176,18 @@ VIDEO_ANALYZER_SIMILARITY_THRESHOLD = 0.8
 VIDEO_ANALYZER_DELETE_SNAPSHOTS = False
 
 ### postgresql db parameters for checkpointer and memory persistent storage. ###
-DB_URI = "postgresql://hga:hga@localhost:5432/hga?sslmode=disable"
+# config keys
+CONF_DB_HOST = "db_host"
+CONF_DB_PORT = "db_port"
+CONF_DB_NAME = "db_name"
+CONF_DB_USER = "db_user"
+CONF_DB_PASSWORD = "db_password"
+CONF_DB_SSLMODE = "db_sslmode"
+
+# defaults
+DEFAULT_DB_HOST = "127.0.0.1"
+DEFAULT_DB_PORT = 5432
+DEFAULT_DB_NAME = "hga"
+DEFAULT_DB_USER = "hga"
+DEFAULT_DB_PASSWORD = os.getenv("HGA_DB_PASSWORD", "hga")
+DEFAULT_DB_SSLMODE = False

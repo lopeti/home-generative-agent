@@ -61,6 +61,18 @@ from .const import (
     RECOMMENDED_VLM,
     RECOMMENDED_VLM_TEMPERATURE,
     RECOMMENDED_VLM_TOP_P,
+    CONF_DB_HOST,
+    CONF_DB_PORT,
+    CONF_DB_NAME,
+    CONF_DB_USER,
+    CONF_DB_PASSWORD,
+    DEFAULT_DB_HOST,
+    DEFAULT_DB_PORT,
+    DEFAULT_DB_NAME,
+    DEFAULT_DB_USER,
+    DEFAULT_DB_PASSWORD,
+    CONF_DB_SSLMODE,
+    DEFAULT_DB_SSLMODE,
 )
 
 if TYPE_CHECKING:
@@ -335,3 +347,82 @@ def config_option_schema(
     )
 
     return schema
+
+class OptionsFlowHandler(OptionsFlow):
+    """
+    Handle options flow for the integration.
+
+    Attributes:
+        config_entry (ConfigEntry): The configuration entry for the integration.
+
+    """
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """
+        Initialize the options flow handler.
+
+        Args:
+            config_entry (ConfigEntry): The configuration entry for the integration.
+
+        """
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """
+        Handle the initial step of the options flow.
+
+        Args:
+            user_input (dict[str, Any] | None): The user input from the form.
+
+        Returns:
+            ConfigFlowResult: The result of the options flow step.
+
+        """
+        schema = vol.Schema({
+            vol.Optional(
+                CONF_DB_HOST,
+                default=self.config_entry.options.get(CONF_DB_HOST, DEFAULT_DB_HOST),
+            ): str,
+            vol.Optional(
+                CONF_DB_PORT,
+                default=self.config_entry.options.get(CONF_DB_PORT, DEFAULT_DB_PORT),
+            ): int,
+            vol.Optional(
+                CONF_DB_NAME,
+                default=self.config_entry.options.get(CONF_DB_NAME, DEFAULT_DB_NAME),
+            ): str,
+            vol.Optional(
+                CONF_DB_USER,
+                default=self.config_entry.options.get(CONF_DB_USER, DEFAULT_DB_USER),
+            ): str,
+            vol.Optional(
+                CONF_DB_PASSWORD,
+                default=self.config_entry.options.get(
+                    CONF_DB_PASSWORD, DEFAULT_DB_PASSWORD
+                ),
+            ): str,
+            vol.Optional(
+                CONF_DB_SSLMODE,
+                default=self.config_entry.options.get(
+                    CONF_DB_SSLMODE, DEFAULT_DB_SSLMODE
+                ),
+            ): bool,
+        })
+        if user_input:
+            return self.async_create_entry(title="Database settings", data=user_input)
+        return self.async_show_form(step_id="init", data_schema=schema)
+
+async def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlowHandler:
+    """
+    Get the options flow handler.
+
+    Args:
+        config_entry (ConfigEntry): The configuration entry for the integration.
+
+    Returns:
+        OptionsFlowHandler: The options flow handler instance.
+
+    """
+    return OptionsFlowHandler(config_entry)

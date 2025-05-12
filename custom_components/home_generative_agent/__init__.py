@@ -17,12 +17,13 @@ from typing import TYPE_CHECKING
 import aiofiles
 import homeassistant.util.dt as dt_util
 from homeassistant.components.camera import DOMAIN as CAMERA_DOMAIN
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_API_KEY,
     EVENT_STATE_CHANGED,
     Platform,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback, Event
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.httpx_client import get_async_client
@@ -39,7 +40,6 @@ from .const import (
     CONF_SUMMARIZATION_MODEL_TEMPERATURE,
     CONF_SUMMARIZATION_MODEL_TOP_P,
     CONF_VIDEO_ANALYZER_MODE,
-    DB_URI,
     EDGE_CHAT_MODEL_URL,
     EMBEDDING_MODEL_CTX,
     EMBEDDING_MODEL_DIMS,
@@ -63,12 +63,20 @@ from .const import (
     VIDEO_ANALYZER_SYSTEM_MESSAGE,
     VIDEO_ANALYZER_TIME_OFFSET,
     VLM_URL,
+    CONF_DB_HOST,
+    CONF_DB_PORT,
+    CONF_DB_NAME,
+    CONF_DB_USER,
+    CONF_DB_PASSWORD,
+    CONF_DB_SSLMODE,
+    DEFAULT_DB_HOST,
+    DEFAULT_DB_PORT,
+    DEFAULT_DB_NAME,
+    DEFAULT_DB_USER,
+    DEFAULT_DB_PASSWORD,
+    DEFAULT_DB_SSLMODE,
 )
 from .tools import analyze_image
-
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
-    from homeassistant.core import Event, HomeAssistant
 
 LOGGER = logging.getLogger(__name__)
 
@@ -366,7 +374,7 @@ class VideoAnalyzer:
 async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     """Set up Home Generative Agent from a config entry."""
     # Initialize models and verify they were setup correctly.
-    chat_model = ChatOpenAI( #TODO: fix blocking call
+    chat_model = ChatOpenAI(
         api_key=entry.data.get(CONF_API_KEY),
         timeout=10,
         http_async_client=get_async_client(hass),
@@ -378,8 +386,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     )
     try:
         await hass.async_add_executor_job(chat_model.get_name)
-    except HomeAssistantError as err:
-        LOGGER.error("Error setting up chat model: %s", err)
+    except HomeAssistantError:
+        LOGGER.exception("Error setting up chat model")
         return False
     entry.chat_model = chat_model
 
@@ -397,8 +405,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     )
     try:
         await hass.async_add_executor_job(edge_chat_model.get_name)
-    except HomeAssistantError as err:
-        LOGGER.error("Error setting up edge chat model: %s", err)
+    except HomeAssistantError:
+        LOGGER.exception("Error setting up edge chat model")
         return False
     entry.edge_chat_model = edge_chat_model
 
@@ -416,8 +424,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     )
     try:
         await hass.async_add_executor_job(vision_model.get_name)
-    except HomeAssistantError as err:
-        LOGGER.error("Error setting up VLM: %s", err)
+    except HomeAssistantError:
+        LOGGER.exception("Error setting up VLM")
         return False
     entry.vision_model = vision_model
 
@@ -435,8 +443,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     )
     try:
         await hass.async_add_executor_job(vision_model.get_name)
-    except HomeAssistantError as err:
-        LOGGER.error("Error setting up summarization model: %s", err)
+    except HomeAssistantError:
+        LOGGER.exception("Error setting up summarization model")
         return False
     entry.summarization_model = summarization_model
 
@@ -445,22 +453,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
         base_url=EMBEDDING_MODEL_URL,
         num_ctx=EMBEDDING_MODEL_CTX
     )
-    # TODO: find a way to verify embedding model was setup correctly.
-    #try:
-        #await hass.async_add_executor_job(embedding_model.get_name)
-    #except HomeAssistantError as err:
-        #LOGGER.error("Error setting up embedding model: %s", err)
-        #return False
     entry.embedding_model = embedding_model
 
     # Open postgresql database for short-term and long-term memory.
+    host = entry.options.get(CONF_DB_HOST, DEFAULT_DB_HOST)
+    port = entry.options.get(CONF_DB_PORT, DEFAULT_DB_PORT)
+    name = entry.options.get(CONF_DB_NAME, DEFAULT_DB_NAME)
+    user = entry.options.get(CONF_DB_USER, DEFAULT_DB_USER)
+    password = entry.options.get(CONF_DB_PASSWORD, DEFAULT_DB_PASSWORD)
+    sslmode = (
+        "disable"
+        if not entry.options.get(CONF_DB_SSLMODE, DEFAULT_DB_SSLMODE)
+        else "require"
+    )
+
+    dsn = f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}"
     connection_kwargs = {
         "autocommit": True,
         "prepare_threshold": 0,
         "row_factory": dict_row
     }
     pool = AsyncConnectionPool(
-        conninfo=DB_URI,
+        conninfo=dsn,
         min_size=5,
         max_size=20,
         kwargs=connection_kwargs,
@@ -468,8 +482,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
     )
     try:
         await pool.open()
-    except PoolTimeout as err:
-        LOGGER.error("Error opening postgresql db: %s", err)
+    except PoolTimeout:
+        LOGGER.exception("Error opening postgresql db")
         return False
     entry.pool = pool
 
@@ -485,8 +499,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: HGAConfigEntry) -> bool:
             "fields": ["content"]
         }
     )
-    # NOTE: must call .setup() the first time store is used.
-    #await store.setup()  # noqa: ERA001
     entry.store = store
 
     # Initialize video analyzer and start if option is set.

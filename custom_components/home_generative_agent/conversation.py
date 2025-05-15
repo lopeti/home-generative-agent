@@ -207,19 +207,12 @@ class HGAConversationEntity(
         tools.extend(langchain_tools.values())
 
         # Conversation IDs are ULIDs. Generate a new one if not provided.
-        # If an old ULID is passed in, generate a new one to indicate
-        # a new conversation was started. If the user picks their own, they
-        # want to track a conversation, so respect it.
         if user_input.conversation_id is None:
             conversation_id = ulid.ulid_now()
         elif user_input.conversation_id in self.app_config["configurable"].values():
             conversation_id = user_input.conversation_id
         else:
-            try:
-                ulid.ulid_to_bytes(user_input.conversation_id)
-                conversation_id = ulid.ulid_now()
-            except ValueError:
-                conversation_id = user_input.conversation_id
+            conversation_id = user_input.conversation_id
         LOGGER.debug("Conversation ID: %s", conversation_id)
 
         if (

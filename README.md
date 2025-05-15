@@ -176,6 +176,8 @@ I built the HA installation on a Raspberry Pi 5 with SSD storage, Zigbee, and LA
 
 ## Installation
 
+**Important Note**: This project has been tested only under Home Assistant Core in a manual development environment as described [here](https://developers.home-assistant.io/docs/development_environment#manual-environment). I have NOT tested it with docker or HAOS.
+
 1. Install the [PostgreSQL](https://www.postgresql.org/) database. This allows for persistence storage of conversations and memories.
 2. Install [pgvector](https://github.com/pgvector/pgvector). This enables vector similarity search for PostgresSQL.
 3. Using the tool of choice, open your HA configuration's directory (folder) (where you find `configuration.yaml`).
@@ -187,7 +189,7 @@ I built the HA installation on a Raspberry Pi 5 with SSD storage, Zigbee, and LA
 9. In the HA UI, go to "Configuration" -> "Integrations" click "+," and search for "Home Generative Agent"
 10. Install all the Blueprints in the `blueprints` directory (folder).
 11. Install `ollama` on your edge device by following the instructions [here](https://ollama.com/download).
-12. Pull `ollama` models `qwen2.5:32b`, `qwen2.5:3b`, `llama-3.2-vision-11b` and `mxbai-embed-large`.
+12. Pull `ollama` models `qwen3:32b`, `qwen3:4b`, `qwen2.5:32b`, `qwen2.5:3b`, `llama-3.2-vision-11b` and `mxbai-embed-large`.
 
 ## Configuration
 Configuration is done in the UI and via the parameters in `const.py`.

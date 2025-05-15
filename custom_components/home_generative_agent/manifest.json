@@ -12,7 +12,7 @@
   "requirements": [
     "aiofiles==24.1.0",
     "langchain==0.3.25",
-    "langchain-openai==0.3.16",
+    "langchain-openai==0.3.9",
     "langchain-ollama==0.3.2",
     "langgraph==0.4.3",
     "langgraph-checkpoint-postgres==2.0.21",

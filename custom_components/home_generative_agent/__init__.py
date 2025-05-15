@@ -30,7 +30,16 @@ from homeassistant.helpers.httpx_client import get_async_client
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import ConfigurableField
 from langchain_ollama import ChatOllama, OllamaEmbeddings
+# Monkey-patch to strip out unsupported 'proxies' parameter
 from langchain_openai import ChatOpenAI
+
+_orig_validate_env = ChatOpenAI.validate_environment
+
+def _patched_validate_environment(self, client_params, sync_specific):
+    client_params.pop("proxies", None)
+    return _orig_validate_env(self, client_params, sync_specific)
+
+ChatOpenAI.validate_environment = _patched_validate_environment
 from langgraph.store.postgres import AsyncPostgresStore
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool, PoolTimeout
